@@ -31,8 +31,17 @@ jobs:
           cli-compile-flags: |
             - --export-binaries
 
+      - name: Convert HEX to UF2
+        run: |
+          # Locate the compiled .hex file
+          HEX_FILE=$(find ./firmware/build/ -name "*.hex" | head -n 1)
+          # Locate Adafruit's uf2conv.py tool downloaded by the core
+          UF2CONV=$(find /home/runner/.arduino15/packages/adafruit/hardware/nrf52 -name "uf2conv.py" | head -n 1)
+          # Convert hex to uf2 using the nRF52840 family ID
+          python3 $UF2CONV -c -f 0xADA52840 $HEX_FILE -o ./firmware/firmware.uf2
+
       - name: Upload UF2 Artifact
         uses: actions/upload-artifact@v4
         with:
           name: firmware-uf2
-          path: ./firmware/build/**/*.uf2
+          path: ./firmware/firmware.uf2
