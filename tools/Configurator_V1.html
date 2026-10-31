@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Macro Pad Configurator</title>
+<style>
+:root {
+  --bg: #f7f7f5;
+  --panel: #ffffff;
+  --line: #e3e3e0;
+  --text: #1a1a1a;
+  --muted: #737370;
+  --accent: #111111;
+  --ink: #ffffff;
+  --soft: #f0f0ee;
+  --hover: #fafafa;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+@media(prefers-color-scheme: dark) {
+  :root {
+    --bg: #111111;
+    --panel: #1c1c1c;
+    --line: #333333;
+    --text: #f0f0f0;
+    --muted: #888888;
+    --accent: #ffffff;
+    --ink: #000000;
+    --soft: #222222;
+    --hover: #262626;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 900px; margin: 0 auto; padding: 32px 24px 64px; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+h1 { font-size: 20px; margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+.conn { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; font-weight: 500; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); transition: background 0.3s; }
+.dot.on { background: var(--accent); box-shadow: none; }
+.steps { list-style: none; display: flex; gap: 24px; flex-wrap: wrap; padding: 0; margin: 16px 0 24px; color: var(--muted); font-size: 13px; }
+.steps li { display: flex; align-items: center; gap: 8px; }
+.steps i { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 600; transition: all 0.2s; }
+.steps .now { color: var(--text); font-weight: 500; }
+.steps .now i { border-color: var(--accent); background: var(--accent); color: var(--ink); }
+.steps .done i { border-color: var(--accent); color: var(--text); }
+.steps .done i::before { content: "\2713"; }
+.steps .done i b { display: none; }
+button, select, input[type=text] { font: inherit; color: var(--text); }
+
+.btn { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 16px; font-weight: 500; cursor: pointer; box-shadow: var(--shadow-sm); transition: all 0.15s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+.btn:hover:not(:disabled) { background: var(--hover); border-color: #c4c4c4; }
+.btn:active:not(:disabled) { transform: scale(0.98); box-shadow: none; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--ink); }
+.btn.primary:hover:not(:disabled) { background: var(--text); opacity: 0.9; border-color: var(--text); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+.toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 24px; flex-wrap: wrap; }
+#dirty { display: none; align-items: center; gap: 6px; margin-left: 6px; font-size: 13px; font-weight: 500; }
+#dirty::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--text); }
+#dirty.show { display: inline-flex; }
+
+.layout { display: flex; gap: 32px; align-items: flex-start; }
+@media(max-width: 720px) { .layout { flex-direction: column; gap: 24px; } .side { width: 100%; } }
+.side { width: 180px; flex: none; }
+.label { font-size: 12px; color: var(--muted); margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+.plist { display: flex; flex-direction: column; gap: 4px; margin-bottom: 20px; }
+.plist button { text-align: left; background: transparent; border: 1px solid transparent; padding: 8px 12px; cursor: pointer; border-radius: var(--radius-sm); transition: all 0.15s ease; color: var(--muted); font-weight: 500; }
+.plist button:hover { background: var(--line); color: var(--text); }
+.plist button.sel { background: var(--panel); border-color: var(--line); color: var(--text); font-weight: 600; box-shadow: var(--shadow-sm); }
+
+.side input[type=text], .side select { width: 100%; margin-bottom: 20px; }
+input[type=text], select { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 12px; min-width: 0; box-shadow: var(--shadow-sm); transition: border-color 0.15s, box-shadow 0.15s; }
+input[type=text]:hover, select:hover { border-color: #c4c4c4; }
+input[type=text]:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+.side .btn { width: 100%; margin-bottom: 10px; text-align: left; }
+
+.main { flex: 1; min-width: 0; }
+.pad { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 24px; display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+.keys { display: grid; grid-template-columns: repeat(3, 92px); gap: 12px; }
+.key, .knob, .turn { background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.15s ease; }
+.key:hover, .knob:hover, .turn:hover { border-color: #c4c4c4; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.04); }
+.key:active, .knob:active, .turn:active { transform: translateY(1px) scale(0.98); box-shadow: none; }
+.key { height: 84px; border-radius: var(--radius-md); padding: 10px 12px; text-align: left; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
+.key small, .knob small, .turn small { color: var(--muted); font-size: 11px; font-weight: 500; }
+.key span { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; line-height: 1.2; }
+
+.encs { display: flex; gap: 20px; }
+.enc { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100px; }
+.knob { width: 76px; height: 76px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0; }
+.knob span { font-size: 12px; font-weight: 600; max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.turn { width: 100%; border-radius: var(--radius-sm); padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+.turn span { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60px; }
+.sel2 { border-color: var(--accent) !important; box-shadow: 0 0 0 2px var(--accent) !important; transform: none !important; }
+
+.editor { margin-top: 24px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-md); }
+.editor h2 { font-size: 16px; margin: 0 0 16px; font-weight: 600; letter-spacing: -0.01em; }
+.seg { display: inline-flex; max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); margin-bottom: 20px; background: var(--bg); padding: 2px; }
+.seg button { background: transparent; border: none; border-radius: 6px; padding: 6px 16px; cursor: pointer; font-weight: 500; white-space: nowrap; transition: all 0.15s ease; color: var(--muted); }
+.seg button:hover { color: var(--text); }
+.seg button.sel { background: var(--panel); color: var(--text); box-shadow: var(--shadow-sm); }
+
+.field { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.field > label, .field > span.t { width: 90px; color: var(--muted); font-size: 13px; font-weight: 500; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chips label { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 6px 14px; cursor: pointer; user-select: none; background: var(--panel); box-shadow: var(--shadow-sm); font-weight: 500; font-size: 13px; transition: all 0.15s ease; }
+.chips label:hover { border-color: #c4c4c4; }
+.chips input { position: absolute; opacity: 0; pointer-events: none; }
+.chips label:has(input:checked) { background: var(--accent); border-color: var(--accent); color: var(--ink); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+.chips label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.preview { margin: -4px 0 16px 102px; color: var(--muted); font-size: 13px; }
+.preview b { color: var(--text); font-weight: 600; }
+.hint { color: var(--muted); font-size: 12px; line-height: 1.4; }
+.hide { display: none; }
+.foot { margin-top: 20px; color: var(--muted); min-height: 20px; font-size: 13px; }
+
+.mode { display: inline-flex; margin-left: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg); padding: 2px; }
+.mode button { background: transparent; border: none; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-weight: 500; font-size: 12px; transition: all 0.15s ease; color: var(--muted); }
+.mode button:hover { color: var(--text); }
+.mode button.sel { background: var(--panel); color: var(--text); box-shadow: var(--shadow-sm); }
+
+body:not(.adv) .adv-only { display: none !important; }
+body.adv .simple-only { display: none !important; }
+.help { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 14px 16px; margin: 0 0 12px; color: var(--text); font-size: 14px; box-shadow: var(--shadow-sm); }
+.help b { color: var(--accent); font-weight: 600; }
+#simpleSel { width: 100%; max-width: 380px; padding: 10px 12px; margin-bottom: 16px; }
+.side .hint { margin: -6px 0 16px; display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Macro Pad</h1>
+    <div class="conn"><span class="dot" id="dot"></span><span id="status">Not connected</span>
+      <button class="btn" id="bConnect">Connect</button></div>
+  </header>
+  <ol class="steps"><li id="s1"><i><b>1</b></i>Connect the pad</li><li id="s2"><i><b>2</b></i>Choose what each button does</li><li id="s3"><i><b>3</b></i>Save to pad</li></ol>
+  <p class="help" id="help">Plug your macro pad into the computer with a USB cable, click <b>Connect</b>, then pick the pad from the list that appears.</p>
+  <p class="help adv-only" style="margin-bottom: 24px; color: var(--muted); font-size: 13px;">
+    <b>To update firmware:</b> 1. Download the firmware below. 2. Click <b>Enter Flash Mode</b> to restart the pad as a USB drive. 3. Drag and drop the downloaded <code>.uf2</code> file onto the drive.
+  </p>
+  <div class="toolbar">
+    <button class="btn adv-only" id="bRead">Read from pad</button>
+    <button class="btn primary" id="bWrite">Save to pad</button>
+    <a href="/firmware/macropad-v0.2.uf2" download class="btn adv-only" id="bFlash">Download Firmware</a>
+    <button class="btn adv-only" id="bBoot">Enter Flash Mode</button>
+    <span id="dirty">Unsaved changes</span>
+    <div class="mode" role="group" aria-label="Mode"><button id="mSimple">Simple</button><button id="mAdv">Advanced</button></div>
+  </div>
+
+  <div class="layout">
+    <aside class="side">
+      <p class="label">Profiles</p>
+      <p class="hint simple-only">Each profile is its own set of actions.</p>
+      <div class="plist" id="plist"></div>
+      <p class="label">Rename</p>
+      <input type="text" id="pname" maxlength="10" aria-label="Profile name">
+      <div class="adv-only"><p class="label">Copy settings</p>
+      <select id="copyFrom" aria-label="Copy from another profile"></select></div>
+      <p class="label">Options</p>
+      <div class="adv-only"><button class="btn" id="bExport">Export backup</button>
+      <button class="btn" id="bImport">Import backup</button></div>
+      <button class="btn" id="bDefaults">Reset to defaults</button>
+      <input type="file" id="file" accept=".json" class="hide">
+    </aside>
+
+    <div class="main">
+      <div class="pad">
+        <div class="keys" id="keys"></div>
+        <div class="encs" id="encs"></div>
+      </div>
+
+      <div class="editor">
+        <h2 id="eTitle">Key S1</h2>
+        <div id="simpleEd" class="simple-only">
+          <p style="margin:0 0 8px;color:var(--muted)">What should this do?</p>
+          <select id="simpleSel" aria-label="Action"></select>
+          <div id="simpleTextRow" class="hide">
+            <input type="text" id="simpleText" maxlength="24" placeholder="Type the words here" style="width:100%;max-width:380px">
+            <p class="hint" style="margin:6px 0 14px">These words are typed for you when you press it.</p>
+          </div>
+          <p class="hint" style="margin:0">Need something more specific? Switch to Advanced at the top.</p>
+        </div>
+        <div id="advEd" class="adv-only">
+        <div class="seg" id="seg"></div>
+
+        <div id="f1" class="hide">
+          <div class="field"><label for="preset">Preset</label>
+            <select id="preset"></select></div>
+          <div class="field"><span class="t">Modifiers</span>
+            <div class="chips">
+              <label><input type="checkbox" id="mc">Ctrl</label><label><input type="checkbox" id="ms">Shift</label>
+              <label><input type="checkbox" id="ma">Alt</label><label><input type="checkbox" id="mw">Win</label>
+            </div></div>
+          <div class="field"><label for="key">Key</label><select id="key"></select></div>
+          <p class="preview" id="preview"></p>
+        </div>
+        <div id="f2" class="hide"><div class="field"><label for="media">Media key</label><select id="media"></select></div></div>
+        <div id="f3" class="hide">
+          <div class="field"><label for="dir">Wheel</label><select id="dir"><option value="1">Scroll up</option><option value="255">Scroll down</option></select></div>
+          <div class="field"><span class="t">Zoom</span><div class="chips"><label><input type="checkbox" id="ctrl">Hold Ctrl while scrolling</label></div></div>
+        </div>
+        <div id="f4" class="hide">
+          <div class="field"><label for="text">Text</label><input type="text" id="text" maxlength="24" style="flex:1;min-width:200px"></div>
+          <p class="hint" style="margin:-4px 0 12px 100px">Up to 24 plain characters. The | symbol is not allowed.</p>
+        </div>
+        <div id="f5" class="hide"><div class="field"><label for="pdir">Go to</label>
+          <select id="pdir"><option value="5">Next profile</option><option value="6">Previous profile</option></select></div></div>
+
+        <div class="field" id="labelRow"><label for="label">OLED label</label>
+          <input type="text" id="label" maxlength="7" style="width:110px"><span class="hint">Shown on the pad screen, 7 characters max</span></div>
+        </div>
+      </div>
+      <p class="foot" id="foot"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const KEYS={};
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach((c,i)=>KEYS[4+i]=c);
+'1234567890'.split('').forEach((c,i)=>KEYS[30+i]=c);
+Object.assign(KEYS,{40:'Enter',41:'Esc',42:'Backspace',43:'Tab',44:'Space',45:'-',46:'=',47:'[',48:']',49:'\\',51:';',52:"'",53:'`',54:',',55:'.',56:'/',70:'Print Screen',73:'Insert',74:'Home',75:'Page Up',76:'Delete',77:'End',78:'Page Down',79:'Right',80:'Left',81:'Down',82:'Up'});
+for(let i=0;i<12;i++)KEYS[58+i]='F'+(i+1);
+const MEDIA={205:['Play / Pause','Play'],181:['Next track','Next'],182:['Previous track','Prev'],183:['Stop','Stop'],179:['Fast forward','FFwd'],180:['Rewind','Rewind'],226:['Mute','Mute'],233:['Volume up','Vol +'],234:['Volume down','Vol -'],111:['Brightness up','Bri +'],112:['Brightness down','Bri -'],402:['Calculator','Calc'],547:['Browser home','Home'],394:['Email','Email'],404:['File explorer','Files']};
+const PRESETS=[['Copy',1,6],['Paste',1,25],['Cut',1,27],['Undo',1,29],['Redo',1,28],['Select all',1,4],['Find',1,9],['Save',1,22],['New tab',1,23],['Close tab',1,26],['Reopen tab',3,23],['Refresh',0,62],['Switch window',4,43],['Screenshot',10,22],['Lock screen',8,15],['Show desktop',8,7],['Task view',8,43],['Emoji',8,55],['Clipboard',8,25],['Task manager',3,41]];
+const NAMES=['Key S1','Key S2','Key S3','Key S4','Key S5','Key S6','Encoder 1, turn right','Encoder 1, turn left','Encoder 1, press','Encoder 2, turn right','Encoder 2, turn left','Encoder 2, press'];
+const SIMPLE_NAMES=['Button 1','Button 2','Button 3','Button 4','Button 5','Button 6','Knob 1: turn right','Knob 1: turn left','Knob 1: press','Knob 2: turn right','Knob 2: turn left','Knob 2: press'];
+let adv=false;try{adv=localStorage.getItem('mpMode')=='adv'}catch(e){}
+const nm=n=>adv?NAMES[n]:SIMPLE_NAMES[n];
+const CAT=[
+['Editing','Copy','Copy',1,1,6],['Editing','Paste','Paste',1,1,25],['Editing','Cut','Cut',1,1,27],['Editing','Undo','Undo',1,1,29],['Editing','Redo','Redo',1,1,28],['Editing','Select all','Sel all',1,1,4],['Editing','Find','Find',1,1,9],['Editing','Save','Save',1,1,22],['Editing','Press Enter','Enter',1,0,40],
+['Browser','New tab','New tab',1,1,23],['Browser','Close tab','Close',1,1,26],['Browser','Reopen closed tab','Reopen',1,3,23],['Browser','Refresh page','Refresh',1,0,62],
+['Windows','Take a screenshot','Snip',1,10,22],['Windows','Lock screen','Lock',1,8,15],['Windows','Show desktop','Desktop',1,8,7],['Windows','Switch window','Switch',1,4,43],['Windows','See all windows','Tasks',1,8,43],['Windows','Emoji picker','Emoji',1,8,55],['Windows','Clipboard history','Clip',1,8,25],['Windows','Task manager','TaskMgr',1,3,41],
+['Music and volume','Play / Pause','Play',2,0,205],['Music and volume','Next song','Next',2,0,181],['Music and volume','Previous song','Prev',2,0,182],['Music and volume','Stop','Stop',2,0,183],['Music and volume','Fast forward','FFwd',2,0,179],['Music and volume','Rewind','Rewind',2,0,180],['Music and volume','Mute','Mute',2,0,226],['Music and volume','Volume up','Vol +',2,0,233],['Music and volume','Volume down','Vol -',2,0,234],['Music and volume','Screen brighter','Bri +',2,0,111],['Music and volume','Screen dimmer','Bri -',2,0,112],
+['Zoom and scroll','Zoom in','Zoom +',3,1,1],['Zoom and scroll','Zoom out','Zoom -',3,1,255],['Zoom and scroll','Scroll up','Scroll+',3,0,1],['Zoom and scroll','Scroll down','Scroll-',3,0,255],
+['Open an app','Calculator','Calc',2,0,402],['Open an app','Email','Email',2,0,394],['Open an app','File explorer','Files',2,0,404],
+['Coding (VS Code)','Command palette','Palette',1,3,19],['Coding (VS Code)','Comment a line','Comment',1,1,56],['Coding (VS Code)','Show or hide sidebar','Sidebar',1,1,5],['Coding (VS Code)','Open terminal','Term',1,1,53],
+['Circuit design (KiCad)','Rotate','Rotate',1,0,21],['Circuit design (KiCad)','Move','Move',1,0,16],['Circuit design (KiCad)','Route a track','Route',1,0,27],['Circuit design (KiCad)','Add a via','Via',1,0,25],['Circuit design (KiCad)','Edit properties','Edit',1,0,8],['Circuit design (KiCad)','Flip','Flip',1,0,9],
+['This pad','Go to the next profile','Profile',5,0,0],['This pad','Go to the previous profile','Prev pf',6,0,0],
+['Other','Type some text','Text',4,0,0],['Other','Do nothing','',0,0,0]];
+function catIndex(a){
+  if(a.type==4)return CAT.findIndex(c=>c[3]==4);
+  if(a.type==0)return CAT.findIndex(c=>c[3]==0);
+  return CAT.findIndex(c=>c[3]==a.type&&c[4]==a.mod&&c[5]==a.code);
+}
+(function(){let g=null,og;const sel=document.getElementById('simpleSel');
+  const cust=new Option('Custom (change it in Advanced)','c');cust.disabled=true;sel.add(cust);
+  CAT.forEach((c,i)=>{if(c[0]!=g){g=c[0];og=document.createElement('optgroup');og.label=g;sel.appendChild(og)}og.appendChild(new Option(c[1],i))});
+})();
+const TYPES=[[1,'Shortcut'],[2,'Media'],[3,'Scroll'],[4,'Text'],[5,'Profile'],[0,'None']];
+const clean=(s,n)=>String(s).replace(/[^\x20-\x7e]/g,'').replace(/\|/g,'').slice(0,n);
+
+function defaults(){
+  const K=(l,mod,code)=>({type:1,mod,code,label:l,text:''}),M=(l,code)=>({type:2,mod:0,code,label:l,text:''});
+  const enc=[M('Vol +',233),M('Vol -',234),{type:5,mod:0,code:0,label:'Profile',text:''},
+    {type:3,mod:1,code:1,label:'Zoom +',text:''},{type:3,mod:1,code:255,label:'Zoom -',text:''},K('Enter',0,40)];
+  const keys=[
+    [K('Save',1,22),K('Palette',3,19),K('Comment',1,56),K('Sidebar',1,5),K('Term',1,53),K('Run',0,62)],
+    [M('Prev',182),M('Play',205),M('Next',181),M('Mute',226),M('Vol -',234),M('Vol +',233)],
+    [K('Rotate',0,21),K('Move',0,16),K('Route',0,27),K('Via',0,25),K('Edit',0,8),K('Flip',0,9)]];
+  return {names:['VS Code','Media','KiCad'],a:keys.map(k=>k.concat(enc.map(e=>({...e}))))};
+}
+let cfg=defaults(),P=0,S=0,isDirty=false;
+const cur=()=>cfg.a[P][S];
+function updateSteps(){
+  const on=!!writer;
+  const st=!on?['now','','']:!isDirty?['done','now','']:['done','done','now'];
+  ['s1','s2','s3'].forEach((id,i)=>$(id).className=st[i]);
+}
+function dirty(v=true){isDirty=v;$('dirty').classList.toggle('show',v);updateSteps()}
+
+function shortcutText(a){
+  const m=[['Ctrl',1],['Shift',2],['Alt',4],['Win',8]].filter(x=>a.mod&x[1]).map(x=>x[0]);
+  return m.concat(KEYS[a.code]||[]).join(' + ');
+}
+function autoLabel(a){
+  let t='';
+  if(a.type==1)t=shortcutText(a).replace(/Ctrl/g,'C').replace(/Shift/g,'S').replace(/Alt/g,'A').replace(/Win/g,'W').replace(/ \+ /g,'+');
+  else if(a.type==2)t=(MEDIA[a.code]||[,'Media'])[1];
+  else if(a.type==3)t=a.mod&1?(a.code==1?'Zoom +':'Zoom -'):(a.code==1?'Scroll+':'Scroll-');
+  else if(a.type==4)t='Text';
+  else if(a.type==5)t='Profile';
+  else if(a.type==6)t='Prev pf';
+  return t.slice(0,7);
+}
+
+function tile(s,cls,tag){
+  const b=document.createElement('button');
+  b.className=cls+(s==S?' sel2':'');
+  b.innerHTML='<small>'+tag+'</small><span>'+(cfg.a[P][s].label||'-').replace(/</g,'&lt;')+'</span>';
+  b.onclick=()=>{S=s;renderPad();showEditor()};
+  return b;
+}
+function renderPad(){
+  $('keys').innerHTML='';
+  for(let i=0;i<6;i++)$('keys').appendChild(tile(i,'key',(adv?'S':'Button ')+(i+1)));
+  $('encs').innerHTML='';
+  [[8,6,7,'Encoder 1'],[11,9,10,'Encoder 2']].forEach(([press,cw,ccw,name])=>{
+    const d=document.createElement('div');d.className='enc';
+    const k=tile(press,'knob','Press');
+    const l=tile(ccw,'turn','&#8634;'),r=tile(cw,'turn','&#8635;');
+    l.style.flexDirection=r.style.flexDirection='row';
+    const n=document.createElement('div');n.className='hint';n.textContent=name.replace('Encoder',adv?'Encoder':'Knob');
+    d.append(k,l,r,n);$('encs').appendChild(d);
+  });
+}
+function renderProfiles(){
+  $('plist').innerHTML='';
+  cfg.names.forEach((n,i)=>{const b=document.createElement('button');b.className=i==P?'sel':'';b.textContent=n||'Profile '+(i+1);b.onclick=()=>{P=i;render()};$('plist').appendChild(b)});
+  $('pname').value=cfg.names[P];
+  $('copyFrom').innerHTML='<option value="">Copy from...</option>';
+  cfg.names.forEach((n,i)=>{if(i!=P)$('copyFrom').add(new Option(n||'Profile '+(i+1),i))});
+}
+function showEditor(){
+  const a=cur();
+  $('eTitle').textContent=nm(S)+'  -  '+(cfg.names[P]||'Profile');
+  $('seg').innerHTML='';
+  TYPES.forEach(([t,n])=>{const b=document.createElement('button');b.textContent=n;b.className=(a.type==t||(t==5&&a.type==6))?'sel':'';b.onclick=()=>setType(t);$('seg').appendChild(b)});
+  $('mc').checked=!!(a.mod&1);$('ms').checked=!!(a.mod&2);$('ma').checked=!!(a.mod&4);$('mw').checked=!!(a.mod&8);
+  $('key').value=KEYS[a.code]?a.code:4;
+  $('media').value=MEDIA[a.code]?a.code:205;
+  $('dir').value=a.code==255?255:1;$('ctrl').checked=!!(a.mod&1);
+  $('text').value=a.text||'';
+  $('pdir').value=a.type==6?6:5;
+  $('label').value=a.label||'';
+  $('preset').value='';
+  $('preview').innerHTML='Sends <b>'+(shortcutText(a)||'nothing yet')+'</b>';
+  const show=a.type==6?5:a.type;
+  for(let i=1;i<=5;i++)$('f'+i).classList.toggle('hide',show!=i);
+  $('labelRow').classList.toggle('hide',a.type==0);
+  const ci=catIndex(a);$('simpleSel').value=ci>=0?ci:'c';
+  $('simpleTextRow').classList.toggle('hide',a.type!=4);$('simpleText').value=a.text||'';
+}
+function render(){renderProfiles();renderPad();showEditor()}
+
+function setType(t){
+  const a=cur(),old=autoLabel(a);
+  const d={0:[0,0],1:[0,4],2:[0,205],3:[0,1],4:[0,0],5:[0,0]};
+  if(t!=a.type&&!(t==5&&a.type==6)){[a.mod,a.code]=d[t];a.type=t}
+  if(t==0)a.label='';
+  else if(!a.label||a.label===old)a.label=autoLabel(a);
+  dirty();render();
+}
+function fieldChange(){
+  const a=cur(),old=autoLabel(a);
+  if(a.type==1){a.mod=$('mc').checked*1|$('ms').checked*2|$('ma').checked*4|$('mw').checked*8;a.code=+$('key').value}
+  else if(a.type==2)a.code=+$('media').value;
+  else if(a.type==3){a.mod=$('ctrl').checked?1:0;a.code=+$('dir').value}
+  else if(a.type==5||a.type==6)a.type=+$('pdir').value;
+  if(!a.label||a.label===old)a.label=autoLabel(a);
+  dirty();render();
+}
+Object.keys(KEYS).forEach(c=>$('key').add(new Option(KEYS[c],c)));
+Object.keys(MEDIA).forEach(c=>$('media').add(new Option(MEDIA[c][0],c)));
+$('preset').add(new Option('Choose a preset...',''));
+PRESETS.forEach((p,i)=>$('preset').add(new Option(p[0]+'  ('+shortcutText({mod:p[1],code:p[2]})+')',i)));
+['mc','ms','ma','mw','key','media','dir','ctrl','pdir'].forEach(id=>$(id).addEventListener('input',fieldChange));
+$('preset').addEventListener('input',()=>{
+  if($('preset').value==='')return;
+  const p=PRESETS[+$('preset').value],a=cur(),old=autoLabel(a);
+  a.mod=p[1];a.code=p[2];
+  if(!a.label||a.label===old)a.label=p[0].slice(0,7);
+  dirty();render();
+});
+$('simpleSel').addEventListener('input',()=>{
+  const it=CAT[+$('simpleSel').value];if(!it)return;
+  const a=cur();a.type=it[3];a.mod=it[4];a.code=it[5];a.label=it[2];
+  if(a.type!=4)a.text='';
+  dirty();render();
+});
+$('simpleText').addEventListener('input',()=>{cur().text=clean($('simpleText').value,24);dirty();renderPad()});
+function setMode(v){
+  adv=v;try{localStorage.setItem('mpMode',v?'adv':'simple')}catch(e){}
+  document.body.classList.toggle('adv',v);
+  $('mSimple').classList.toggle('sel',!v);$('mAdv').classList.toggle('sel',v);
+  render();
+}
+$('mSimple').onclick=()=>setMode(false);$('mAdv').onclick=()=>setMode(true);
+$('text').addEventListener('input',()=>{const a=cur(),old=autoLabel(a);a.text=clean($('text').value,24);dirty();renderPad()});
+$('label').addEventListener('input',()=>{cur().label=clean($('label').value,7);dirty();renderPad()});
+$('pname').addEventListener('input',()=>{cfg.names[P]=clean($('pname').value,10);dirty();renderProfiles();$('pname').focus();$('eTitle').textContent=nm(S)+'  -  '+(cfg.names[P]||'Profile')});
+$('copyFrom').addEventListener('input',()=>{
+  const i=$('copyFrom').value;if(i==='')return;
+  if(confirm('Replace everything in this profile with the settings from '+cfg.names[i]+'?')){cfg.a[P]=cfg.a[i].map(x=>({...x}));dirty();foot('Copied settings')}
+  render();
+});
+function foot(t){$('foot').textContent=t}
+
+/* Connection */
+let port,writer,hook=null,buf='';
+const msg=t=>$('status').textContent=t;
+function setConn(on){$('dot').classList.toggle('on',on);$('bConnect').textContent=on?'Connected':'Connect';$('bConnect').disabled=on;$('help').style.display=on?'none':'block';$('bRead').disabled=$('bWrite').disabled=!on;$('bBoot').disabled=!on;if(!on)msg('Not connected');updateSteps()}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function send(l){await writer.write(new TextEncoder().encode(l+'\n'));await sleep(40)} // Increased to 40ms to prevent nRF52 buffer overflow
+function wait(test,ms){return new Promise((res,rej)=>{const to=setTimeout(()=>{hook=null;rej(new Error('no reply from the pad'))},ms);hook=l=>{if(test(l)){clearTimeout(to);hook=null;res()}}})}
+async function readLoop(){
+  const dec=new TextDecoderStream();port.readable.pipeTo(dec.writable);
+  const r=dec.readable.getReader();
+  for(;;){const{value,done}=await r.read();if(done)break;buf+=value;let i;
+    while((i=buf.indexOf('\n'))>=0){const l=buf.slice(0,i).trim();buf=buf.slice(i+1);if(hook)hook(l)}}
+}
+async function connect(){
+  if(!('serial' in navigator)){foot(adv?'Web Serial requires Chrome or Edge and a secure HTTPS connection.':'This page needs Google Chrome or Microsoft Edge to talk to the pad. Please open it there.');return}
+  try{port=await navigator.serial.requestPort();await port.open({baudRate:115200});writer=port.writable.getWriter();readLoop();setConn(true);msg('Connected');await readPad()}
+  catch(e){foot(adv?'Could not connect: '+e.message:'Could not connect. Check the USB cable, close other programs that use the pad, and try again.')}
+}
+async function readPad(){
+  if(!writer)return foot('Connect to the pad first.');
+  const t=defaults();
+  try{
+    const p=wait(l=>{
+      const f=l.split('|');
+      if(f[0]=='P')t.names[+f[1]]=f[2];
+      else if(f[0]=='A')t.a[+f[1]][+f[2]]={type:+f[3],mod:+f[4],code:+f[5],label:f[6]||'',text:f.slice(7).join('|')};
+      return l=='END';
+    },4000);
+    await send('GET');await p;cfg=t;render();dirty(false);foot('Loaded the settings from the pad.')
+  }catch(e){foot(adv?'Read failed: '+e.message:'Could not read the pad. Try unplugging it and plugging it back in.')}
+}
+async function writePad(){
+  if(!writer)return foot('Connect to the pad first.');
+  try{
+    foot('Saving...');
+    for(let p=0;p<3;p++){
+      await send('P|'+p+'|'+clean(cfg.names[p],10));
+      for(let s=0;s<12;s++){const a=cfg.a[p][s];await send(['A',p,s,a.type,a.mod,a.code,clean(a.label,7),clean(a.text||'',24)].join('|'))}
+    }
+    const w=wait(l=>l=='OK',4000);await send('SAVE');await w;dirty(false);foot('Saved to the pad.')
+  }catch(e){
+    writer = null; setConn(false);
+    foot(adv?'Write failed: '+e.message:'Could not save to the pad. Make sure it is still plugged in and try again.')
+  }
+}
+$('bConnect').onclick=connect;$('bRead').onclick=readPad;$('bWrite').onclick=writePad;
+$('bBoot').onclick=async()=>{
+  if(!writer)return foot('Connect to the pad first.');
+  try{
+    await send('BOOT');
+    foot('Rebooting... The pad should appear as a USB drive momentarily.');
+    writer=null;setConn(false);
+  }catch(e){foot('Failed to send boot command: '+e.message);}
+};
+if('serial' in navigator)navigator.serial.addEventListener('disconnect',()=>{writer=null;setConn(false)});
+$('bDefaults').onclick=()=>{if(confirm('Put every button back to its original action? Nothing changes on the pad until you click Save to pad.')){cfg=defaults();dirty();render();foot('Defaults loaded.')}};
+$('bExport').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(cfg,null,1)],{type:'application/json'}));a.download='macropad-config.json';a.click()};
+$('bImport').onclick=()=>$('file').click();
+$('file').onchange=async e=>{
+  try{const j=JSON.parse(await e.target.files[0].text());
+    if(j.names.length!=3||j.a.length!=3||j.a.some(p=>p.length!=12))throw new Error('wrong layout');
+    cfg=j;dirty();render();foot('Imported the backup.')}
+  catch(err){foot('Import failed: '+err.message)}
+  e.target.value='';
+};
+window.addEventListener('beforeunload',e=>{if(isDirty){e.preventDefault();e.returnValue=''}});
+setMode(adv);setConn(false);
+</script>
+</body>
+</html>

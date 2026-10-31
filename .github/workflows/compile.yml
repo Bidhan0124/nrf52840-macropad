@@ -1,0 +1,35 @@
+name: Compile Sketch to UF2
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compile Arduino sketch
+        uses: arduino/compile-sketches@v1
+        with:
+          fqbn: "adafruit:nrf52:pca10056" 
+          platforms: |
+            - name: adafruit:nrf52
+              source-url: https://adafruit.github.io/arduino-board-index/package_adafruit_index.json
+          libraries: |
+            - name: Adafruit GFX Library
+            - name: Adafruit SH110X
+          sketch-paths: |
+            - ./firmware
+          cli-compile-flags: |
+            - --export-binaries
+
+      - name: Upload UF2 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-uf2
+          path: ./firmware/build/**/*.uf2
