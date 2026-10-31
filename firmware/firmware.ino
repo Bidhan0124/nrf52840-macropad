@@ -13,6 +13,15 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SH110X.h>
 
+// --- Pre-declarations for Arduino Preprocessor ---
+struct Button { int pin; bool stable; bool lastRaw; uint32_t changedAt; bool wentPressed; bool wentReleased; };
+struct Encoder { int pinA; int pinB; uint8_t last; int8_t count; };
+void buttonBegin(Button &b, int pin);
+void buttonUpdate(Button &b);
+void encoderBegin(Encoder &e, int a, int b);
+int8_t encoderRead(Encoder &e);
+// -------------------------------------------------
+
 // ---------------------------------------------------------------------------
 // 1. PIN SETTINGS - MAPPED FOR nRF52840 SUPERMINI
 // ---------------------------------------------------------------------------
@@ -304,8 +313,6 @@ void pollSerial() {
 // ---------------------------------------------------------------------------
 // 7. BUTTONS AND ENCODERS
 // ---------------------------------------------------------------------------
-struct Button { int pin; bool stable; bool lastRaw; uint32_t changedAt; bool wentPressed; bool wentReleased; };
-
 void buttonBegin(Button &b, int pin) {
   b.pin = pin; pinMode(pin, INPUT_PULLUP);
   b.stable = false; b.lastRaw = false; b.changedAt = 0; b.wentPressed = false; b.wentReleased = false;
@@ -323,8 +330,6 @@ void buttonUpdate(Button &b) {
     else b.wentReleased = true;
   }
 }
-
-struct Encoder { int pinA; int pinB; uint8_t last; int8_t count; };
 
 void encoderBegin(Encoder &e, int a, int b) {
   e.pinA = a; e.pinB = b;
